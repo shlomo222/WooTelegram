@@ -109,8 +109,12 @@ class WooTG_Settings {
 			$ids   = array();
 			if ( is_array( $lines ) ) {
 				foreach ( $lines as $line ) {
-					$id = absint( trim( (string) $line ) );
-					if ( $id > 0 ) {
+					$trimmed = trim( (string) $line );
+					if ( $trimmed === '' || ! preg_match( '/^-?[0-9]+$/', $trimmed ) ) {
+						continue;
+					}
+					$id = intval( $trimmed );
+					if ( $id !== 0 ) {
 						$ids[] = $id;
 					}
 				}
@@ -357,6 +361,12 @@ class WooTG_Settings {
 
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'אין הרשאה.', 'woo-telegram-manager' ) ), 403 );
+		}
+
+		$token = self::get_decrypted_bot_token_for_requests();
+		if ( $token === '' ) {
+			wp_send_json_error( array( 'message' => __( 'בוט טוקן לא הוגדר. יש להזין טוקן ולשמור הגדרות תחילה.', 'woo-telegram-manager' ) ) );
+			return;
 		}
 
 		try {
