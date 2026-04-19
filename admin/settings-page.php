@@ -123,4 +123,35 @@ $chat_lines = implode( "\n", array_map( 'strval', $chat_ids ) );
 
 		<?php submit_button( __( 'שמור הגדרות', 'woo-telegram-manager' ) ); ?>
 	</form>
+
+	<div class="wootg-card wootg-debug-section">
+		<h2 class="wootg-card__title"><?php esc_html_e( 'דיבאג', 'woo-telegram-manager' ); ?></h2>
+		<p class="wootg-card__desc"><?php esc_html_e( 'בדיקות חיבור ויומן פעילות אחרון.', 'woo-telegram-manager' ); ?></p>
+
+		<p class="submit">
+			<button type="button" class="button button-secondary" id="wootg-test-bot">
+				<?php esc_html_e( 'בדוק חיבור לבוט', 'woo-telegram-manager' ); ?>
+			</button>
+		</p>
+		<p class="wootg-test-bot-result" id="wootg-test-bot-result" aria-live="polite"></p>
+
+		<h3 class="wootg-logs-heading"><?php esc_html_e( 'Log אחרונים', 'woo-telegram-manager' ); ?></h3>
+		<div class="wootg-logs-wrap">
+			<table class="widefat striped wootg-logs-table" id="wootg-logs-table">
+				<thead>
+					<tr>
+						<th scope="col"><?php esc_html_e( 'זמן', 'woo-telegram-manager' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'פעולה', 'woo-telegram-manager' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'סטטוס', 'woo-telegram-manager' ); ?></th>
+						<th scope="col"><?php esc_html_e( 'שגיאה', 'woo-telegram-manager' ); ?></th>
+					</tr>
+				</thead>
+				<tbody id="wootg-logs-body">
+					<tr class="wootg-logs-placeholder">
+						<td colspan="4"><?php esc_html_e( 'טוען…', 'woo-telegram-manager' ); ?></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
 </div>

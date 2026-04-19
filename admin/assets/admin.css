@@ -75,3 +75,34 @@
 .wootg-toggle-token {
 	margin-inline-start: 0.35rem;
 }
+
+.wootg-debug-section {
+	margin-block-start: 1.5rem;
+}
+
+.wootg-logs-heading {
+	margin: 1rem 0 0.5rem;
+	font-size: 1rem;
+	color: #0088cc;
+}
+
+.wootg-logs-wrap {
+	overflow-x: auto;
+}
+
+.wootg-logs-table {
+	margin-block-start: 0.5rem;
+}
+
+.wootg-test-bot-result {
+	min-height: 1.25rem;
+	font-weight: 600;
+}
+
+.wootg-test-bot-result.is-ok {
+	color: #2e7d32;
+}
+
+.wootg-test-bot-result.is-bad {
+	color: #c62828;
+}

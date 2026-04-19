@@ -125,5 +125,94 @@
 		});
 
 		fetchWebhookStatus();
+
+		var logsTimer = null;
+		var $logsBody = $('#wootg-logs-body');
+
+		function renderLogs(rows) {
+			$logsBody.empty();
+			if (!rows || !rows.length) {
+				$('<tr/>')
+					.append(
+						$('<td/>', { colspan: 4, text: wootgAdmin.i18n.logsEmpty })
+					)
+					.appendTo($logsBody);
+				return;
+			}
+			rows.forEach(function (row) {
+				$('<tr/>')
+					.append($('<td/>').text(row.created_at || ''))
+					.append($('<td/>').text(row.action || ''))
+					.append($('<td/>').text(row.status || ''))
+					.append($('<td/>').text(row.error_message || ''))
+					.appendTo($logsBody);
+			});
+		}
+
+		function fetchLogs() {
+			if (!$logsBody.length) {
+				return;
+			}
+			$.post(wootgAdmin.ajaxUrl, {
+				action: 'wootg_get_logs',
+				nonce: wootgAdmin.nonce
+			})
+				.done(function (res) {
+					if (res && res.success && res.data && res.data.rows) {
+						renderLogs(res.data.rows);
+					} else {
+						renderLogs([]);
+					}
+				})
+				.fail(function () {
+					renderLogs([]);
+				});
+		}
+
+		if ($logsBody.length) {
+			fetchLogs();
+			logsTimer = window.setInterval(fetchLogs, 10000);
+			$(window).on('beforeunload', function () {
+				if (logsTimer) {
+					window.clearInterval(logsTimer);
+				}
+			});
+		}
+
+		$('#wootg-test-bot').on('click', function () {
+			var $btn = $(this);
+			var $out = $('#wootg-test-bot-result');
+			$btn.prop('disabled', true);
+			$out.removeClass('is-ok is-bad').text(wootgAdmin.i18n.loading);
+			$.post(wootgAdmin.ajaxUrl, {
+				action: 'wootg_test_bot',
+				nonce: wootgAdmin.nonce
+			})
+				.always(function () {
+					$btn.prop('disabled', false);
+				})
+				.done(function (res) {
+					if (res && res.success && res.data) {
+						var d = res.data;
+						var uname = d.username ? '@' + d.username : '';
+						var line =
+							wootgAdmin.i18n.testBotOk +
+							': ' +
+							(d.first_name || '') +
+							(uname ? ' ' + uname : '') +
+							(d.bot_id ? ' (ID ' + d.bot_id + ')' : '');
+						$out.addClass('is-ok').removeClass('is-bad').text(line);
+					} else {
+						var msg =
+							res && res.data && res.data.message
+								? res.data.message
+								: wootgAdmin.i18n.testBotFail;
+						$out.addClass('is-bad').removeClass('is-ok').text(msg);
+					}
+				})
+				.fail(function () {
+					$out.addClass('is-bad').removeClass('is-ok').text(wootgAdmin.i18n.errorGeneric);
+				});
+		});
 	});
 })(jQuery);

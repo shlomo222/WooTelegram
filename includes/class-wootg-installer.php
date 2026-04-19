@@ -94,6 +94,8 @@ class WooTG_Installer {
 	 * Run on plugin deactivation.
 	 */
 	public static function deactivate(): void {
+		wp_clear_scheduled_hook( 'wootg_cleanup_sessions' );
+
 		$token = self::get_plain_bot_token_for_api();
 		if ( $token === '' ) {
 			return;

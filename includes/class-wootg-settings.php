@@ -25,6 +25,8 @@ class WooTG_Settings {
 		add_action( 'wp_ajax_wootg_register_webhook', array( self::class, 'ajax_register_webhook' ) );
 		add_action( 'wp_ajax_wootg_delete_webhook', array( self::class, 'ajax_delete_webhook' ) );
 		add_action( 'wp_ajax_wootg_webhook_status', array( self::class, 'ajax_webhook_status' ) );
+		add_action( 'wp_ajax_wootg_test_bot', array( self::class, 'ajax_test_bot' ) );
+		add_action( 'wp_ajax_wootg_get_logs', array( self::class, 'ajax_get_logs' ) );
 	}
 
 	/**
@@ -180,6 +182,9 @@ class WooTG_Settings {
 					'notRegistered'  => __( 'Webhook לא רשום', 'woo-telegram-manager' ),
 					'errorGeneric'   => __( 'שגיאה, נסה שוב.', 'woo-telegram-manager' ),
 					'confirmDelete'  => __( 'לנתק את ה-Webhook מטלגרם?', 'woo-telegram-manager' ),
+					'testBotOk'      => __( 'חיבור תקין', 'woo-telegram-manager' ),
+					'testBotFail'    => __( 'החיבור נכשל', 'woo-telegram-manager' ),
+					'logsEmpty'      => __( 'אין רשומות', 'woo-telegram-manager' ),
 				),
 			)
 		);
@@ -342,6 +347,76 @@ class WooTG_Settings {
 				'raw'        => $result,
 			)
 		);
+	}
+
+	/**
+	 * AJAX: getMe — verify bot token.
+	 */
+	public static function ajax_test_bot(): void {
+		check_ajax_referer( 'wootg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'אין הרשאה.', 'woo-telegram-manager' ) ), 403 );
+		}
+
+		try {
+			$telegram = new WooTG_Telegram();
+			$res      = $telegram->get_me();
+		} catch ( \Throwable $e ) {
+			wp_send_json_error( array( 'message' => $e->getMessage() ) );
+			return;
+		}
+
+		if ( null === $res || empty( $res['ok'] ) || empty( $res['result'] ) || ! is_array( $res['result'] ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'לא התקבלה תשובה תקינה מטלגרם.', 'woo-telegram-manager' ),
+				)
+			);
+			return;
+		}
+
+		$bot = $res['result'];
+
+		wp_send_json_success(
+			array(
+				'ok'         => true,
+				'first_name' => isset( $bot['first_name'] ) ? (string) $bot['first_name'] : '',
+				'username'   => isset( $bot['username'] ) ? (string) $bot['username'] : '',
+				'is_bot'     => ! empty( $bot['is_bot'] ),
+				'bot_id'     => isset( $bot['id'] ) ? (int) $bot['id'] : null,
+			)
+		);
+	}
+
+	/**
+	 * AJAX: recent activity log rows.
+	 */
+	public static function ajax_get_logs(): void {
+		check_ajax_referer( 'wootg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'אין הרשאה.', 'woo-telegram-manager' ) ), 403 );
+		}
+
+		$rows = WooTG_Logger::get_recent( 20 );
+		$out  = array();
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$out[] = array(
+				'id'            => isset( $row['id'] ) ? (int) $row['id'] : 0,
+				'created_at'    => isset( $row['created_at'] ) ? (string) $row['created_at'] : '',
+				'action'        => isset( $row['action'] ) ? (string) $row['action'] : '',
+				'status'        => isset( $row['status'] ) ? (string) $row['status'] : '',
+				'error_message' => isset( $row['error_message'] ) && is_string( $row['error_message'] ) ? $row['error_message'] : '',
+			);
+		}
+
+		wp_send_json_success( array( 'rows' => $out ) );
 	}
 
 	/**
