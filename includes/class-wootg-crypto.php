@@ -35,6 +35,7 @@ class WooTG_Crypto {
 		$iv  = random_bytes( 16 );
 
 		$ciphertext = openssl_encrypt( $plaintext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+
 		if ( false === $ciphertext ) {
 			self::log_error( 'openssl_encrypt failed — storing as plain fallback' );
 			self::maybe_show_openssl_notice();
@@ -69,6 +70,7 @@ class WooTG_Crypto {
 		$key        = self::get_binary_key();
 
 		$plain = openssl_decrypt( $ciphertext, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+
 		if ( false === $plain ) {
 			self::log_error( 'openssl_decrypt failed' );
 			return '';
@@ -91,7 +93,6 @@ class WooTG_Crypto {
 		if ( defined( 'AUTH_KEY' ) && is_string( AUTH_KEY ) && AUTH_KEY !== '' ) {
 			return AUTH_KEY;
 		}
-
 		return wp_salt( 'auth' );
 	}
 
@@ -114,7 +115,7 @@ class WooTG_Crypto {
 	 */
 	private static function log_error( string $reason ): void {
 		if ( class_exists( 'WooTG_Logger' ) ) {
-			WooTG_Logger::log( 'crypto', 'error', $reason );
+			WooTG_Logger::log_error( 'crypto', $reason );
 		} else {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( 'WooTG_Crypto: ' . $reason );
