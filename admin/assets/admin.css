@@ -1,0 +1,77 @@
+/**
+ * WooTelegram Manager — admin settings (RTL-friendly).
+ */
+
+.wootg-settings-wrap {
+	max-width: 960px;
+}
+
+.wootg-page-title {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1.25rem;
+	color: #0088cc;
+}
+
+.wootg-page-title__icon {
+	font-size: 1.5rem;
+	line-height: 1;
+}
+
+.wootg-card {
+	background: #fff;
+	border: 1px solid #ccd0d4;
+	border-radius: 6px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+	padding: 1rem 1.25rem 1.25rem;
+	margin-block-end: 1.25rem;
+}
+
+.wootg-card__title {
+	margin: 0 0 0.35rem;
+	font-size: 1.1rem;
+	color: #0088cc;
+	border-block-end: 1px solid #e2e4e7;
+	padding-block-end: 0.5rem;
+}
+
+.wootg-card__desc {
+	margin: 0 0 1rem;
+	color: #50575e;
+}
+
+.wootg-webhook-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-block-start: 0.75rem;
+}
+
+.wootg-webhook-status {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-weight: 600;
+	margin: 0;
+}
+
+.wootg-webhook-status[data-state="loading"] .wootg-webhook-status__emoji {
+	color: #f0b429;
+}
+
+.wootg-webhook-status[data-state="ok"] .wootg-webhook-status__emoji {
+	color: #2e7d32;
+}
+
+.wootg-webhook-status[data-state="bad"] .wootg-webhook-status__emoji {
+	color: #c62828;
+}
+
+.wootg-webhook-status[data-state="warn"] .wootg-webhook-status__emoji {
+	color: #f0b429;
+}
+
+.wootg-toggle-token {
+	margin-inline-start: 0.35rem;
+}
