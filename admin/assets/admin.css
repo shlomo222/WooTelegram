@@ -106,3 +106,20 @@
 .wootg-test-bot-result.is-bad {
 	color: #c62828;
 }
+
+.wootg-github-test-result {
+	min-height: 1.25rem;
+	font-weight: 600;
+}
+
+.wootg-github-test-result.is-ok {
+	color: #2e7d32;
+}
+
+.wootg-github-test-result.is-bad {
+	color: #c62828;
+}
+
+.wootg-toggle-github-token {
+	margin-inline-start: 0.35rem;
+}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Bootstrap: text domain, webhook, cron, admin UI.
+ * Bootstrap: text domain, webhook, cron, GitHub updater, admin UI.
  *
  * @package WooTelegram_Manager
  */
@@ -33,6 +33,7 @@ class WooTG_Loader {
 		add_action( 'wootg_cleanup_sessions', array( WooTG_Session::class, 'cleanup_stale' ) );
 
 		if ( is_admin() ) {
+			new WooTG_Updater();
 			WooTG_Settings::init();
 		}
 	}

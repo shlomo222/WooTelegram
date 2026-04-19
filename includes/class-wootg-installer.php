@@ -79,6 +79,7 @@ class WooTG_Installer {
 
 		$defaults = array(
 			'bot_token'              => '',
+			'github_token'           => '',
 			'authorized_chat_ids'    => array(),
 			'default_product_status' => 'publish',
 			'default_stock_status' => 'instock',
