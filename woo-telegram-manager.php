@@ -68,9 +68,9 @@ function wootg_autoload( string $class ): void {
 		return;
 	}
 
-	$parts = explode( '_', $short );
-	$slug  = strtolower( implode( '-', $parts ) );
-	$file  = 'class-wootg-' . $slug . '.php';
+	// WooTG_Flow_MainMenu → flow-main-menu (split _ then split CamelCase).
+	$slug = strtolower( preg_replace( '/(?<=[a-z0-9])([A-Z])/', '-$1', str_replace( '_', '-', $short ) ) );
+	$file = 'class-wootg-' . $slug . '.php';
 
 	$candidates = array(
 		WOOTG_PATH . 'includes/' . $file,
