@@ -146,7 +146,42 @@ class WooTG_Settings {
 				: sanitize_text_field( (string) $input['ai_api_key'] );
 		}
 
+		self::sync_authorized_users_table(
+			isset( $out['authorized_chat_ids'] ) && is_array( $out['authorized_chat_ids'] )
+				? $out['authorized_chat_ids']
+				: array()
+		);
+
 		return $out;
+	}
+
+	/**
+	 * Keep wp_wootg_authorized_users in sync with the settings option.
+	 *
+	 * @param list<int> $new_ids
+	 */
+	private static function sync_authorized_users_table( array $new_ids ): void {
+		if ( ! class_exists( 'WooTG_Auth' ) ) {
+			return;
+		}
+
+		$existing_rows = WooTG_Auth::get_all();
+		$existing_ids  = array_map(
+			'intval',
+			array_column( $existing_rows, 'telegram_chat_id' )
+		);
+
+		foreach ( $existing_ids as $old_id ) {
+			if ( ! in_array( $old_id, $new_ids, true ) ) {
+				WooTG_Auth::remove( $old_id );
+			}
+		}
+
+		foreach ( $new_ids as $new_id ) {
+			if ( ! in_array( $new_id, $existing_ids, true ) ) {
+				WooTG_Auth::add( $new_id, '', 'admin' );
+			}
+		}
 	}
 
 	/**
