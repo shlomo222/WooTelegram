@@ -41,7 +41,6 @@ class WooTG_Updater {
 		add_filter( 'plugin_action_links_' . $this->plugin_file, array( $this, 'action_links' ) );
 		add_action( 'admin_post_wootg_force_update_check', array( $this, 'force_update_check' ) );
 		add_filter( 'upgrader_source_selection', array( $this, 'fix_source_name' ), 10, 4 );
-		add_filter( 'http_request_args', array( $this, 'maybe_authorize_github_http' ), 10, 2 );
 	}
 
 	/**
@@ -306,42 +305,6 @@ class WooTG_Updater {
 	}
 
 	/**
-	 * Attach Authorization to private zipball downloads.
-	 *
-	 * @param array<string, mixed> $args Request args.
-	 * @param string               $url  URL.
-	 * @return array<string, mixed>
-	 */
-	public function maybe_authorize_github_http( array $args, $url ): array {
-		if ( ! is_string( $url ) ) {
-			return $args;
-		}
-
-		$needle = sprintf(
-			'https://api.github.com/repos/%s/%s/zipball/',
-			$this->github_user,
-			$this->github_repo
-		);
-
-		if ( strpos( $url, $needle ) !== 0 ) {
-			return $args;
-		}
-
-		$token = $this->get_github_token();
-		if ( '' === $token ) {
-			return $args;
-		}
-
-		if ( ! isset( $args['headers'] ) || ! is_array( $args['headers'] ) ) {
-			$args['headers'] = array();
-		}
-
-		$args['headers']['Authorization'] = 'token ' . $token;
-
-		return $args;
-	}
-
-	/**
 	 * @param array<string, mixed> $hook_extra Hook extra.
 	 */
 	private function is_our_plugin_upgrade( array $hook_extra ): bool {
@@ -360,39 +323,10 @@ class WooTG_Updater {
 	 * @return array<string, string>
 	 */
 	private function build_github_headers(): array {
-		$headers = array(
+		return array(
 			'Accept'     => 'application/vnd.github.v3+json',
 			'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url( '/' ),
 		);
-
-		$token = $this->get_github_token();
-		if ( '' !== $token ) {
-			$headers['Authorization'] = 'token ' . $token;
-		}
-
-		return $headers;
-	}
-
-	/**
-	 * Decrypted PAT from options (empty if unset).
-	 */
-	private function get_github_token(): string {
-		$settings = get_option( 'wootg_settings', array() );
-		if ( ! is_array( $settings ) || empty( $settings['github_token'] ) ) {
-			return '';
-		}
-
-		$raw = trim( (string) $settings['github_token'] );
-		if ( '' === $raw ) {
-			return '';
-		}
-
-		$plain = WooTG_Crypto::decrypt( $raw );
-		if ( '' !== $plain ) {
-			return $plain;
-		}
-
-		return $raw;
 	}
 
 	private function normalize_release_version( string $tag ): string {

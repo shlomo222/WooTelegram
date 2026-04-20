@@ -27,7 +27,8 @@ class WooTG_Settings {
 		add_action( 'wp_ajax_wootg_webhook_status', array( self::class, 'ajax_webhook_status' ) );
 		add_action( 'wp_ajax_wootg_test_bot', array( self::class, 'ajax_test_bot' ) );
 		add_action( 'wp_ajax_wootg_get_logs', array( self::class, 'ajax_get_logs' ) );
-		add_action( 'wp_ajax_wootg_test_github', array( self::class, 'ajax_test_github' ) );
+		add_action( 'wp_ajax_wootg_regenerate_webhook_secret', array( self::class, 'ajax_regenerate_webhook_secret' ) );
+		add_action( 'admin_notices', array( self::class, 'show_invalid_token_notice' ) );
 	}
 
 	/**
@@ -99,7 +100,12 @@ class WooTG_Settings {
 			);
 
 			if ( $old_plain !== $new_token ) {
-				$out['bot_token'] = WooTG_Crypto::encrypt( $new_token );
+				if ( ! self::is_plausible_telegram_bot_token( $new_token ) ) {
+					set_transient( 'wootg_invalid_token_notice', 1, 30 );
+					$out['bot_token'] = isset( $existing['bot_token'] ) ? (string) $existing['bot_token'] : '';
+				} else {
+					$out['bot_token'] = WooTG_Crypto::encrypt( $new_token );
+				}
 			} else {
 				$out['bot_token'] = isset( $existing['bot_token'] ) ? (string) $existing['bot_token'] : '';
 			}
@@ -145,22 +151,6 @@ class WooTG_Settings {
 			$out['ai_api_key'] = null === $input['ai_api_key'] || '' === $input['ai_api_key']
 				? null
 				: sanitize_text_field( (string) $input['ai_api_key'] );
-		}
-
-		$new_github = isset( $input['github_token'] ) ? trim( (string) $input['github_token'] ) : '';
-
-		if ( '' === $new_github ) {
-			$out['github_token'] = isset( $existing['github_token'] ) ? (string) $existing['github_token'] : '';
-		} else {
-			$old_github_plain = self::get_plain_github_token_from_stored(
-				isset( $existing['github_token'] ) ? (string) $existing['github_token'] : ''
-			);
-
-			if ( $old_github_plain !== $new_github ) {
-				$out['github_token'] = WooTG_Crypto::encrypt( $new_github );
-			} else {
-				$out['github_token'] = isset( $existing['github_token'] ) ? (string) $existing['github_token'] : '';
-			}
 		}
 
 		self::sync_authorized_users_table(
@@ -237,7 +227,8 @@ class WooTG_Settings {
 					'registered'     => __( 'Webhook רשום', 'woo-telegram-manager' ),
 					'notRegistered'  => __( 'Webhook לא רשום', 'woo-telegram-manager' ),
 					'errorGeneric'   => __( 'שגיאה, נסה שוב.', 'woo-telegram-manager' ),
-					'confirmDelete'  => __( 'לנתק את ה-Webhook מטלגרם?', 'woo-telegram-manager' ),
+					'confirmDelete'       => __( 'לנתק את ה-Webhook מטלגרם?', 'woo-telegram-manager' ),
+					'confirmRotateSecret' => __( 'פעולה זו תבטל את ה-Webhook הנוכחי ותרשום חדש. להמשיך?', 'woo-telegram-manager' ),
 					'testBotOk'      => __( 'חיבור תקין', 'woo-telegram-manager' ),
 					'testBotFail'    => __( 'החיבור נכשל', 'woo-telegram-manager' ),
 					'logsEmpty'      => __( 'אין רשומות', 'woo-telegram-manager' ),
@@ -482,101 +473,67 @@ class WooTG_Settings {
 	}
 
 	/**
-	 * AJAX: verify GitHub PAT against the private repo.
+	 * AJAX: regenerate webhook secret and re-register with Telegram.
 	 */
-	public static function ajax_test_github(): void {
+	public static function ajax_regenerate_webhook_secret(): void {
 		check_ajax_referer( 'wootg_admin', 'nonce' );
 
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			wp_send_json_error( array( 'message' => __( 'אין הרשאה.', 'woo-telegram-manager' ) ), 403 );
 		}
 
-		$token = self::get_decrypted_github_token_for_requests();
-		if ( '' === $token ) {
-			wp_send_json_error(
+		$new_secret = wp_generate_password( 32, false, false );
+		update_option( 'wootg_webhook_secret', $new_secret );
+
+		$new_url = site_url( '/wp-json/wootg/v1/webhook/' . $new_secret );
+
+		$token = self::get_decrypted_bot_token_for_requests();
+		if ( $token === '' ) {
+			wp_send_json_success(
 				array(
-					'message' => __( 'יש להגדיר GitHub token ולשמור הגדרות תחילה.', 'woo-telegram-manager' ),
+					'message'     => __( 'Secret חודש. אין Bot Token — Webhook לא נרשם אוטומטית.', 'woo-telegram-manager' ),
+					'webhook_url' => $new_url,
 				)
 			);
-			return;
 		}
 
-		$repo_url = 'https://api.github.com/repos/shlomo222/WooTelegram';
-		$headers  = array(
-			'Accept'     => 'application/vnd.github.v3+json',
-			'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url( '/' ),
-			'Authorization' => 'token ' . $token,
-		);
-
-		$resp = wp_remote_get(
-			$repo_url,
+		$api  = 'https://api.telegram.org/bot' . rawurlencode( $token ) . '/setWebhook';
+		$resp = wp_remote_post(
+			$api,
 			array(
 				'timeout' => 15,
-				'headers' => $headers,
+				'headers' => array( 'Content-Type' => 'application/json' ),
+				'body'    => wp_json_encode( array( 'url' => $new_url ) ),
 			)
 		);
 
 		if ( is_wp_error( $resp ) ) {
-			WooTG_Logger::log_error(
-				'settings_github_test',
-				$resp->get_error_message(),
-				array( 'url' => $repo_url )
+			wp_send_json_error(
+				array(
+					'message'     => $resp->get_error_message(),
+					'webhook_url' => $new_url,
+				)
 			);
-			wp_send_json_error( array( 'message' => $resp->get_error_message() ) );
-			return;
 		}
 
 		$code = (int) wp_remote_retrieve_response_code( $resp );
+		$body = wp_remote_retrieve_body( $resp );
+		$data = json_decode( $body, true );
 
-		if ( 401 === $code ) {
-			wp_send_json_error( array( 'message' => __( 'הטוקן לא תקין', 'woo-telegram-manager' ) ) );
-			return;
-		}
-
-		if ( 404 === $code ) {
-			wp_send_json_error( array( 'message' => __( 'ריפו לא נמצא או אין הרשאה', 'woo-telegram-manager' ) ) );
-			return;
-		}
-
-		if ( 200 !== $code ) {
-			WooTG_Logger::log_error(
-				'settings_github_test',
-				'github api error: ' . (string) $code,
+		if ( $code >= 400 || ! is_array( $data ) || empty( $data['ok'] ) ) {
+			$desc = is_array( $data ) && isset( $data['description'] ) ? (string) $data['description'] : $body;
+			wp_send_json_error(
 				array(
-					'url'  => $repo_url,
-					'body' => wp_remote_retrieve_body( $resp ),
+					'message'     => $desc,
+					'webhook_url' => $new_url,
 				)
 			);
-			wp_send_json_error( array( 'message' => __( 'שגיאת GitHub API', 'woo-telegram-manager' ) ) );
-			return;
-		}
-
-		$tag_label = '';
-		$rel_url   = 'https://api.github.com/repos/shlomo222/WooTelegram/releases/latest';
-		$rel_resp  = wp_remote_get(
-			$rel_url,
-			array(
-				'timeout' => 15,
-				'headers' => $headers,
-			)
-		);
-
-		if ( ! is_wp_error( $rel_resp ) && 200 === (int) wp_remote_retrieve_response_code( $rel_resp ) ) {
-			$rel_data = json_decode( wp_remote_retrieve_body( $rel_resp ), true );
-			if ( is_array( $rel_data ) && ! empty( $rel_data['tag_name'] ) ) {
-				$tag_label = (string) $rel_data['tag_name'];
-			}
-		}
-
-		$message = __( 'חיבור תקין ✅', 'woo-telegram-manager' );
-		if ( '' !== $tag_label ) {
-			$message .= ' ' . __( 'אחרון:', 'woo-telegram-manager' ) . ' ' . $tag_label;
 		}
 
 		wp_send_json_success(
 			array(
-				'message' => $message,
-				'tag'     => $tag_label,
+				'message'     => __( 'Secret חודש ו-Webhook נרשם מחדש בהצלחה.', 'woo-telegram-manager' ),
+				'webhook_url' => $new_url,
 			)
 		);
 	}
@@ -614,46 +571,17 @@ class WooTG_Settings {
 	 * Loose format check for legacy plaintext tokens.
 	 */
 	private static function is_plausible_telegram_bot_token( string $token ): bool {
-		return 1 === preg_match( '/^[0-9]{6,}:[A-Za-z0-9_-]{30,}$/', $token );
+		return 1 === preg_match( '/^[0-9]{6,12}:[A-Za-z0-9_-]{30,50}$/', $token );
 	}
 
-	/**
-	 * Decrypted GitHub PAT for API calls, or empty.
-	 */
-	private static function get_decrypted_github_token_for_requests(): string {
-		$settings = get_option( 'wootg_settings', array() );
-		if ( ! is_array( $settings ) || empty( $settings['github_token'] ) ) {
-			return '';
+	public static function show_invalid_token_notice(): void {
+		if ( ! get_transient( 'wootg_invalid_token_notice' ) ) {
+			return;
 		}
-
-		return self::get_plain_github_token_from_stored( (string) $settings['github_token'] );
+		delete_transient( 'wootg_invalid_token_notice' );
+		echo '<div class="notice notice-error is-dismissible"><p>' .
+			esc_html__( 'טוקן בוט לא תקין — לא נשמר', 'woo-telegram-manager' ) .
+			'</p></div>';
 	}
 
-	/**
-	 * Stored PAT (encrypted or legacy plain).
-	 */
-	private static function get_plain_github_token_from_stored( string $stored ): string {
-		$stored = trim( $stored );
-		if ( '' === $stored ) {
-			return '';
-		}
-
-		$decrypted = WooTG_Crypto::decrypt( $stored );
-		if ( '' !== $decrypted ) {
-			return $decrypted;
-		}
-
-		return self::is_plausible_github_token( $stored ) ? $stored : '';
-	}
-
-	/**
-	 * Heuristic for legacy plaintext PATs.
-	 */
-	private static function is_plausible_github_token( string $token ): bool {
-		if ( strlen( $token ) < 20 ) {
-			return false;
-		}
-
-		return 1 === preg_match( '/^(ghp_|github_pat_|gho_|ghu_|ghs_)/', $token );
-	}
 }

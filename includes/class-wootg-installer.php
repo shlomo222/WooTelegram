@@ -79,16 +79,21 @@ class WooTG_Installer {
 
 		$defaults = array(
 			'bot_token'              => '',
-			'github_token'           => '',
 			'authorized_chat_ids'    => array(),
 			'default_product_status' => 'publish',
-			'default_stock_status' => 'instock',
+			'default_stock_status'   => 'instock',
 			'default_manage_stock'   => true,
 			'ai_provider'            => null,
 			'ai_api_key'             => null,
 		);
 
 		add_option( 'wootg_settings', $defaults, '', 'no' );
+
+		$existing_settings = get_option( 'wootg_settings', array() );
+		if ( is_array( $existing_settings ) && array_key_exists( 'github_token', $existing_settings ) ) {
+			unset( $existing_settings['github_token'] );
+			update_option( 'wootg_settings', $existing_settings );
+		}
 	}
 
 	/**
@@ -144,6 +149,6 @@ class WooTG_Installer {
 	 * Loose format check for legacy plaintext tokens when decrypt is unavailable or fails.
 	 */
 	private static function is_plausible_telegram_bot_token( string $token ): bool {
-		return 1 === preg_match( '/^[0-9]{6,}:[A-Za-z0-9_-]{30,}$/', $token );
+		return 1 === preg_match( '/^[0-9]{6,12}:[A-Za-z0-9_-]{30,50}$/', $token );
 	}
 }

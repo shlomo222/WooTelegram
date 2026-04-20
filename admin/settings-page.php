@@ -93,6 +93,7 @@ $chat_lines = implode( "\n", array_map( 'strval', $chat_ids ) );
 						<input
 							type="text"
 							readonly
+							id="wootg-webhook-url"
 							class="large-text code"
 							value="<?php echo esc_attr( $webhook_url ); ?>"
 						/>
@@ -115,47 +116,10 @@ $chat_lines = implode( "\n", array_map( 'strval', $chat_ids ) );
 							<button type="button" class="button" id="wootg-check-webhook">
 								<?php esc_html_e( 'בדוק סטטוס', 'woo-telegram-manager' ); ?>
 							</button>
-						</p>
-					</td>
-				</tr>
-			</table>
-		</div>
-
-		<div class="wootg-card">
-			<h2 class="wootg-card__title"><?php esc_html_e( 'עדכוני תוסף (GitHub)', 'woo-telegram-manager' ); ?></h2>
-			<p class="wootg-card__desc">
-				<?php
-				echo wp_kses_post(
-					wpautop(
-						__( 'יש ליצור token ב-<a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener noreferrer">GitHub</a> עם הרשאת <code>repo</code> (לריפו פרטי). ה-token יישמר מוצפן.', 'woo-telegram-manager' )
-					)
-				);
-				?>
-			</p>
-			<table class="form-table" role="presentation">
-				<tr>
-					<th scope="row">
-						<label for="wootg-github-token"><?php esc_html_e( 'GitHub Personal Access Token', 'woo-telegram-manager' ); ?></label>
-					</th>
-					<td>
-						<input
-							type="password"
-							id="wootg-github-token"
-							name="wootg_settings[github_token]"
-							class="regular-text wootg-github-token-field"
-							value=""
-							autocomplete="off"
-							placeholder="<?php esc_attr_e( '(ריק = ללא שינוי)', 'woo-telegram-manager' ); ?>"
-						/>
-						<button type="button" class="button wootg-toggle-github-token" aria-pressed="false">
-							<?php esc_html_e( 'הצג / הסתר', 'woo-telegram-manager' ); ?>
-						</button>
-						<p class="submit" style="margin-top: 0.75rem;">
-							<button type="button" class="button button-secondary" id="wootg-test-github">
-								<?php esc_html_e( 'בדוק חיבור ל-GitHub', 'woo-telegram-manager' ); ?>
+							<button type="button" class="button" id="wootg-rotate-secret">
+								<?php esc_html_e( 'החלף Secret', 'woo-telegram-manager' ); ?>
 							</button>
 						</p>
-						<p class="wootg-github-test-result" id="wootg-github-test-result" aria-live="polite"></p>
 					</td>
 				</tr>
 			</table>

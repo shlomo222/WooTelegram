@@ -55,13 +55,6 @@
 			$(this).attr('aria-pressed', isPassword ? 'true' : 'false');
 		});
 
-		var $ghToken = $('#wootg-github-token');
-		$('.wootg-toggle-github-token').on('click', function () {
-			var isPassword = $ghToken.attr('type') === 'password';
-			$ghToken.attr('type', isPassword ? 'text' : 'password');
-			$(this).attr('aria-pressed', isPassword ? 'true' : 'false');
-		});
-
 		$('#wootg-register-webhook').on('click', function () {
 			var $btn = $(this);
 			var $status = $('#wootg-webhook-status');
@@ -129,6 +122,43 @@
 
 		$('#wootg-check-webhook').on('click', function () {
 			fetchWebhookStatus();
+		});
+
+		$('#wootg-rotate-secret').on('click', function () {
+			if (!window.confirm(wootgAdmin.i18n.confirmRotateSecret)) {
+				return;
+			}
+			var $btn = $(this);
+			var $status = $('#wootg-webhook-status');
+			$btn.prop('disabled', true);
+			setStatus($status, 'loading', wootgAdmin.i18n.loading);
+			$.post(
+				wootgAdmin.ajaxUrl,
+				{
+					action: 'wootg_regenerate_webhook_secret',
+					nonce: wootgAdmin.nonce
+				}
+			)
+				.always(function () {
+					$btn.prop('disabled', false);
+				})
+				.done(function (res) {
+					if (res && res.success && res.data) {
+						if (res.data.webhook_url) {
+							$('#wootg-webhook-url').val(res.data.webhook_url);
+						}
+						fetchWebhookStatus();
+					} else {
+						var msg =
+							res && res.data && res.data.message
+								? res.data.message
+								: wootgAdmin.i18n.errorGeneric;
+						setStatus($status, 'bad', msg);
+					}
+				})
+				.fail(function () {
+					setStatus($status, 'bad', wootgAdmin.i18n.errorGeneric);
+				});
 		});
 
 		fetchWebhookStatus();
@@ -222,32 +252,5 @@
 				});
 		});
 
-		$('#wootg-test-github').on('click', function () {
-			var $btn = $(this);
-			var $out = $('#wootg-github-test-result');
-			$btn.prop('disabled', true);
-			$out.removeClass('is-ok is-bad').text(wootgAdmin.i18n.loading);
-			$.post(wootgAdmin.ajaxUrl, {
-				action: 'wootg_test_github',
-				nonce: wootgAdmin.nonce
-			})
-				.always(function () {
-					$btn.prop('disabled', false);
-				})
-				.done(function (res) {
-					if (res && res.success && res.data && res.data.message) {
-						$out.addClass('is-ok').removeClass('is-bad').text(res.data.message);
-					} else {
-						var msg =
-							res && res.data && res.data.message
-								? res.data.message
-								: wootgAdmin.i18n.errorGeneric;
-						$out.addClass('is-bad').removeClass('is-ok').text(msg);
-					}
-				})
-				.fail(function () {
-					$out.addClass('is-bad').removeClass('is-ok').text(wootgAdmin.i18n.errorGeneric);
-				});
-		});
 	});
 })(jQuery);

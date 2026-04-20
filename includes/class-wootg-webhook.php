@@ -70,6 +70,18 @@ class WooTG_Webhook {
 			return new \WP_REST_Response( array( 'ok' => true ), 200 );
 		}
 
+		$raw_ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+		$ip     = filter_var( $raw_ip, FILTER_VALIDATE_IP ) !== false ? $raw_ip : '';
+
+		if ( $ip !== '' && self::is_rate_limited( $ip ) ) {
+			WooTG_Logger::log_error(
+				'webhook_rate_limited',
+				'ip blocked',
+				array( 'ip' => $ip )
+			);
+			return new \WP_REST_Response( array( 'ok' => true ), 200 );
+		}
+
 		$chat_id = null;
 
 		try {
@@ -148,6 +160,20 @@ class WooTG_Webhook {
 		}
 
 		return array( $chat_id, $user_id );
+	}
+
+	private static function is_rate_limited( string $ip ): bool {
+		$key   = 'wootg_rl_' . md5( $ip );
+		$count = (int) get_transient( $key );
+
+		if ( $count === 0 ) {
+			set_transient( $key, 1, 60 );
+			return false;
+		}
+
+		set_transient( $key, $count + 1, 60 );
+
+		return $count >= 60;
 	}
 
 	private static function should_log_full_update(): bool {

@@ -202,7 +202,7 @@ class WooTG_Telegram {
 	 * Legacy plaintext token heuristic.
 	 */
 	private static function is_plausible_bot_token( string $token ): bool {
-		return 1 === preg_match( '/^[0-9]{6,}:[A-Za-z0-9_-]{30,}$/', $token );
+		return 1 === preg_match( '/^[0-9]{6,12}:[A-Za-z0-9_-]{30,50}$/', $token );
 	}
 
 	/**
