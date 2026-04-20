@@ -84,6 +84,10 @@ class WooTG_Router {
 				$handler = new WooTG_Flow_MainMenu( $update, $session );
 				$handler->handle();
 				return;
+			case 'add_product':
+				$handler = new WooTG_Flow_AddProduct( $update, $session );
+				$handler->handle();
+				return;
 			default:
 				WooTG_Logger::log(
 					'router_unknown_flow',

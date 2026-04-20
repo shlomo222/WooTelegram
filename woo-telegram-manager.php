@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WooTelegram Manager
  * Description: ניהול חנות WooCommerce דרך טלגרם
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: Shlomi
  * Text Domain: woo-telegram-manager
  * Domain Path: /languages
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WOOTG_VERSION', '1.0.1' );
+define( 'WOOTG_VERSION', '1.1.0' );
 define( 'WOOTG_FILE', __FILE__ );
 define( 'WOOTG_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WOOTG_URL', plugin_dir_url( __FILE__ ) );

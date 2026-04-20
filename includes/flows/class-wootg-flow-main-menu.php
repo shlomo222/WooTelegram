@@ -24,12 +24,8 @@ class WooTG_Flow_MainMenu extends WooTG_Flow_Base {
 			$this->answer_callback();
 
 			if ( 'main_menu:add_product' === $data ) {
-				WooTG_Session::end( $this->chat_id );
-				$this->send(
-					WooTG_Telegram::escape_html(
-						__( 'בקרוב: הוספת מוצר חדש', 'woo-telegram-manager' )
-					)
-				);
+				WooTG_Session::start( $this->chat_id, $this->user_id, 'add_product', 'ask_name', array() );
+				WooTG_Flow_AddProduct::show_ask_name( $this->telegram, $this->chat_id );
 				return;
 			}
 
